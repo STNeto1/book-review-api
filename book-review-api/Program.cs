@@ -1,6 +1,7 @@
 using book_review_api.Data;
 using book_review_api.Graph;
 using book_review_api.Service;
+using DataAnnotatedModelValidations;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,7 @@ builder
     .AddGraphQLServer()
     .AddMutationType<Mutation>()
     .AddQueryType<Query>()
+    .AddDataAnnotationsValidator()
     .AddMutationConventions();
 
 var app = builder.Build();
