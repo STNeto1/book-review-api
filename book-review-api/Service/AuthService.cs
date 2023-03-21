@@ -46,4 +46,33 @@ public class AuthService : IAuthService
             throw e;
         }
     }
+    
+    public async Task<bool> Login(LoginInput input, CancellationToken cancellationToken)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == input.Email, cancellationToken);
+            if (user == null)
+            {
+                throw new InvalidCredentialsException();
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(input.Password, user.Password))
+            {
+                throw new InvalidCredentialsException();
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return true;
+        }
+        catch (InvalidCredentialsException e)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+
+            throw e;
+        }
+    }
 }

@@ -5,4 +5,5 @@ namespace book_review_api.Service;
 public interface IAuthService
 {
     public Task<bool> Register(RegisterInput input, CancellationToken cancellationToken);
+    public Task<bool> Login(LoginInput input, CancellationToken cancellationToken);
 }

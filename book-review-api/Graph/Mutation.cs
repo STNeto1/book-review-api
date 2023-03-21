@@ -12,4 +12,11 @@ public class Mutation
     {
         return await _authService.Register(input, cancellationToken);
     }
+    
+    [Error(typeof(InvalidCredentialsException))]
+    public async Task<bool> Login([Service] IAuthService _authService, LoginInput input,
+        CancellationToken cancellationToken)
+    {
+        return await _authService.Login(input, cancellationToken);
+    }
 }
