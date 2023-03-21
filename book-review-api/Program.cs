@@ -6,12 +6,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
                        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<DataContext>(options => options.UseNpgsql(connectionString));
+builder.Services.AddDbContext<DataContext>(options => options.UseMySQL(connectionString));
 
 builder
     .Services
     .AddGraphQLServer()
-    .AddQueryType<Query>();
+    .AddMutationType<Mutation>()
+    .AddQueryType<Query>()
+    .AddMutationConventions()
+    .RegisterDbContext<DataContext>();
 
 var app = builder.Build();
 
