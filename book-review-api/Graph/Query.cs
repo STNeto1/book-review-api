@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using book_review_api.Exceptions;
+using book_review_api.Graph.Inputs;
 using book_review_api.Graph.Type;
 using book_review_api.Service;
 using HotChocolate.Authorization;
@@ -19,5 +20,13 @@ public class Query
     {
         var user = await _authService.Profile(claimsPrincipal, cancellationToken);
         return Type.Profile.FromEntity(user);
+    }
+
+    [UsePaging]
+    public async Task<IEnumerable<PublicBookReview>> BookReviews([Service] IBookReviewService _bookReviewService,
+        SearchBookReviewInput input,
+        CancellationToken cancellationToken)
+    {
+        return await _bookReviewService.GetBookReviews(input, cancellationToken);
     }
 }

@@ -8,4 +8,7 @@ public interface IBookReviewService
 {
     public Task<PublicBookReview> CreateBookReview(CreateBookReviewInput input, ClaimsPrincipal claimsPrincipal,
         CancellationToken cancellationToken);
+
+    public Task<IEnumerable<PublicBookReview>> GetBookReviews(SearchBookReviewInput input,
+        CancellationToken cancellationToken);
 }
