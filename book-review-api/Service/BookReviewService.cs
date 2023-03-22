@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using book_review_api.Data;
 using book_review_api.Entities;
+using book_review_api.Exceptions;
 using book_review_api.Graph.Inputs;
 using book_review_api.Graph.Type;
 using Microsoft.EntityFrameworkCore;
@@ -103,5 +104,34 @@ public class BookReviewService : IBookReviewService
             },
             CreatedAt = x.CreatedAt
         });
+    }
+    
+    public async Task<PublicBookReview?> GetBookReview(int id, CancellationToken cancellationToken)
+    {
+        var bookReview = await _context.BookReviews
+            .Include(x => x.Author)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (bookReview == null)
+        {
+            return null;
+        }
+        
+        return new PublicBookReview
+        {
+            Id = bookReview.Id,
+            Title = bookReview.Title,
+            Content = bookReview.Content,
+            Rating = bookReview.Rating,
+            BookTitle = bookReview.BookTitle,
+            BookAuthor = bookReview.BookAuthor,
+            BookYear = bookReview.BookYear,
+            Author = new Profile
+            {
+                Id = bookReview.Author.Id,
+                Email = bookReview.Author.Email
+            },
+            CreatedAt = bookReview.CreatedAt
+        };
     }
 }

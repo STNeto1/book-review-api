@@ -1,5 +1,6 @@
 using System.Text;
 using book_review_api.Data;
+using book_review_api.Exceptions;
 using book_review_api.Graph;
 using book_review_api.Service;
 using DataAnnotatedModelValidations;

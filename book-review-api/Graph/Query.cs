@@ -10,9 +10,6 @@ namespace book_review_api.Graph;
 [Authorize]
 public class Query
 {
-    public DateTime Timestamp() => DateTime.UtcNow;
-
-
     [Authorize]
     [Error(typeof(UnauthorizedException))]
     public async Task<Profile> Profile([Service] IAuthService _authService, ClaimsPrincipal claimsPrincipal,
@@ -28,5 +25,12 @@ public class Query
         CancellationToken cancellationToken)
     {
         return await _bookReviewService.GetBookReviews(input, cancellationToken);
+    }
+
+    public async Task<PublicBookReview?> BookReview([Service] IBookReviewService _bookReviewService,
+        int id,
+        CancellationToken cancellationToken)
+    {
+        return await _bookReviewService.GetBookReview(id, cancellationToken);
     }
 }

@@ -11,4 +11,6 @@ public interface IBookReviewService
 
     public Task<IEnumerable<PublicBookReview>> GetBookReviews(SearchBookReviewInput input,
         CancellationToken cancellationToken);
+    
+    public Task<PublicBookReview> GetBookReview(int id, CancellationToken cancellationToken);
 }
