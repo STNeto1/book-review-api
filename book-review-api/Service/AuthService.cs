@@ -1,21 +1,28 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using book_review_api.Data;
 using book_review_api.Entities;
 using book_review_api.Exceptions;
 using book_review_api.Graph.Inputs;
+using book_review_api.Graph.Output;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace book_review_api.Service;
 
 public class AuthService : IAuthService
 {
     private readonly DataContext _context;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(DataContext context)
+    public AuthService(DataContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
-    public async Task<bool> Register(RegisterInput input, CancellationToken cancellationToken)
+    public async Task<AuthResponse> Register(RegisterInput input, CancellationToken cancellationToken)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -36,8 +43,8 @@ public class AuthService : IAuthService
             await _context.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
-
-            return true;
+            
+            return GenerateToken(user);
         }
         catch (UserAlreadyExistsException e)
         {
@@ -46,8 +53,8 @@ public class AuthService : IAuthService
             throw e;
         }
     }
-    
-    public async Task<bool> Login(LoginInput input, CancellationToken cancellationToken)
+
+    public async Task<AuthResponse> Login(LoginInput input, CancellationToken cancellationToken)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -66,7 +73,7 @@ public class AuthService : IAuthService
 
             await transaction.CommitAsync(cancellationToken);
 
-            return true;
+            return GenerateToken(user);
         }
         catch (InvalidCredentialsException e)
         {
@@ -74,5 +81,56 @@ public class AuthService : IAuthService
 
             throw e;
         }
+    }
+    
+    public async Task<User> Profile(ClaimsPrincipal claimsPrincipal, CancellationToken cancellationToken)
+    {
+        var user = await GetUserFromClaims(claimsPrincipal, cancellationToken);
+        if (user == null)
+        {
+            throw new UnauthorizedException();
+        }
+
+        return user;
+    }
+
+    private AuthResponse GenerateToken(User user)
+    {
+        var key = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
+        var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+
+        var userClaims = new ClaimsIdentity(new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email)
+        });
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = userClaims,
+            Expires = DateTime.Now.AddDays(1),
+            Issuer = "https://auth.stneto.dev",
+            Audience = "https://graphql.stneto.dev",
+            SigningCredentials = cred
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var tokenJwt = tokenHandler.CreateToken(tokenDescriptor);
+        var token = tokenHandler.WriteToken(tokenJwt);
+
+        return new AuthResponse
+        {
+            Token = token
+        };
+    }
+    
+    private ValueTask<User> GetUserFromClaims(ClaimsPrincipal claims, CancellationToken cancellationToken)
+    {
+        var userId = claims.FindFirstValue(ClaimTypes.NameIdentifier);
+        var parsed = userId.IsNullOrEmpty() ? -1 : int.Parse(userId);
+        
+        return _context.Users.FindAsync(parsed, cancellationToken);
     }
 }
