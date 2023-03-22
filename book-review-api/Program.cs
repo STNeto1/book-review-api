@@ -35,6 +35,7 @@ builder.Services.AddDbContextPool<DataContext>(options => { options.UseMySQL(con
 builder
     .Services
     .AddScoped<IAuthService, AuthService>()
+    .AddScoped<IBookReviewService, BookReviewService>()
     .AddGraphQLServer()
     .AddAuthorization()
     .AddMutationType<Mutation>()
