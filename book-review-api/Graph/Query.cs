@@ -18,6 +18,16 @@ public class Query
         var user = await _authService.Profile(claimsPrincipal, cancellationToken);
         return Type.Profile.FromEntity(user);
     }
+    
+    [Authorize, UsePaging]
+    public async Task<IEnumerable<PublicBookReview>> UserBookReviews([Service] IBookReviewService _bookReviewService,
+        SearchBookReviewInput input,
+        ClaimsPrincipal claimsPrincipal,
+        CancellationToken cancellationToken)
+    {
+        return await _bookReviewService.GetUserBookReviews(input, claimsPrincipal, cancellationToken);
+    }
+
 
     [UsePaging]
     public async Task<IEnumerable<PublicBookReview>> BookReviews([Service] IBookReviewService _bookReviewService,

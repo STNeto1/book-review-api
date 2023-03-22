@@ -105,7 +105,50 @@ public class BookReviewService : IBookReviewService
             CreatedAt = x.CreatedAt
         });
     }
-    
+
+    public async Task<IEnumerable<PublicBookReview>> GetUserBookReviews(SearchBookReviewInput input, ClaimsPrincipal claimsPrincipal,
+        CancellationToken cancellationToken)
+    {
+        var user = await _authService.Profile(claimsPrincipal, cancellationToken);
+
+        var query = _context.BookReviews
+            .Include(x => x.Author)
+            .Where(x => x.UserId == user.Id)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(input.Term))
+        {
+            query = query.Where(x =>
+                x.BookTitle.Contains(input.Term) ||
+                x.BookAuthor.Contains(input.Term));
+        }
+
+        if (input.Rating != null)
+        {
+            query = query.Where(x => x.Rating == input.Rating);
+        }
+
+        var bookReviews = await query
+            .ToListAsync(cancellationToken);
+
+        return bookReviews.Select(x => new PublicBookReview
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Content = x.Content,
+            Rating = x.Rating,
+            BookTitle = x.BookTitle,
+            BookAuthor = x.BookAuthor,
+            BookYear = x.BookYear,
+            Author = new Profile
+            {
+                Id = x.Author.Id,
+                Email = x.Author.Email
+            },
+            CreatedAt = x.CreatedAt
+        });
+    }
+
     public async Task<PublicBookReview?> GetBookReview(int id, CancellationToken cancellationToken)
     {
         var bookReview = await _context.BookReviews
