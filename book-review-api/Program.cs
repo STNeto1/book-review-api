@@ -41,6 +41,7 @@ builder
     .AddAuthorization()
     .AddMutationType<Mutation>()
     .AddQueryType<Query>()
+    .AddType<UploadType>()
     .AddDataAnnotationsValidator()
     .AddMutationConventions()
     .AllowIntrospection(false)
@@ -51,6 +52,7 @@ var app = builder.Build();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 
 app.UseEndpoints(endpoints => endpoints.MapGraphQL());
 

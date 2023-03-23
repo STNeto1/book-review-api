@@ -15,4 +15,6 @@ public class CreateBookReviewInput
 
     [Required, Range(0, 2023, ErrorMessage = "Value must be between 0 and 2023")]
     public int BookYear { get; set; }
+
+    [Required] public List<IFile> Images { get; set; }
 }

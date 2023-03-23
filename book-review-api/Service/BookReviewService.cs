@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using book_review_api.Data;
 using book_review_api.Entities;
-using book_review_api.Exceptions;
 using book_review_api.Graph.Inputs;
 using book_review_api.Graph.Type;
 using Microsoft.EntityFrameworkCore;
+using Path = System.IO.Path;
 
 namespace book_review_api.Service;
 
@@ -17,6 +17,21 @@ public class BookReviewService : IBookReviewService
     {
         _context = context;
         _authService = authService;
+    }
+
+    private string GetImageRootFolder(int id)
+    {
+        var basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+        var bookPath = Path.Combine(basePath, id.ToString());
+        
+
+        // check if book folder exists
+        if (!Directory.Exists(bookPath))
+        {
+            Directory.CreateDirectory(bookPath);
+        }
+
+        return bookPath;
     }
 
     public async Task<PublicBookReview> CreateBookReview(CreateBookReviewInput input,
@@ -40,6 +55,18 @@ public class BookReviewService : IBookReviewService
 
         await _context.BookReviews.AddAsync(bookReview, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+
+        var root = GetImageRootFolder(bookReview.Id);
+
+        foreach (var image in input.Images)
+        {
+            var fileExtension = Path.GetExtension(image.Name);
+
+            var filePath = Path.Combine(root, $"{Guid.NewGuid()}{fileExtension}");
+            await using var stream = File.Create(filePath);
+            await image.CopyToAsync(stream, cancellationToken);
+        }
+
 
         return new PublicBookReview
         {
@@ -106,7 +133,8 @@ public class BookReviewService : IBookReviewService
         });
     }
 
-    public async Task<IEnumerable<PublicBookReview>> GetUserBookReviews(SearchBookReviewInput input, ClaimsPrincipal claimsPrincipal,
+    public async Task<IEnumerable<PublicBookReview>> GetUserBookReviews(SearchBookReviewInput input,
+        ClaimsPrincipal claimsPrincipal,
         CancellationToken cancellationToken)
     {
         var user = await _authService.Profile(claimsPrincipal, cancellationToken);
@@ -159,7 +187,7 @@ public class BookReviewService : IBookReviewService
         {
             return null;
         }
-        
+
         return new PublicBookReview
         {
             Id = bookReview.Id,
