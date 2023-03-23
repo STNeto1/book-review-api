@@ -145,27 +145,7 @@ public class BookReviewService : IBookReviewService
         var bookReviews = await query
             .ToListAsync(cancellationToken);
 
-        return bookReviews.Select(x => new PublicBookReview
-        {
-            Id = x.Id,
-            Title = x.Title,
-            Content = x.Content,
-            Rating = x.Rating,
-            BookTitle = x.BookTitle,
-            BookAuthor = x.BookAuthor,
-            BookYear = x.BookYear,
-            Author = new Profile
-            {
-                Id = x.Author.Id,
-                Email = x.Author.Email
-            },
-            Images = x.Images.Select(y => new PublicBookImage
-            {
-                Id = y.Id,
-                ImageUrl = y.ImageUrl
-            }).ToList(),
-            CreatedAt = x.CreatedAt
-        });
+        return bookReviews.Select(ParseBook);
     }
 
     public async Task<IEnumerable<PublicBookReview>> GetUserBookReviews(SearchBookReviewInput input,
@@ -195,27 +175,7 @@ public class BookReviewService : IBookReviewService
         var bookReviews = await query
             .ToListAsync(cancellationToken);
 
-        return bookReviews.Select(x => new PublicBookReview
-        {
-            Id = x.Id,
-            Title = x.Title,
-            Content = x.Content,
-            Rating = x.Rating,
-            BookTitle = x.BookTitle,
-            BookAuthor = x.BookAuthor,
-            BookYear = x.BookYear,
-            Author = new Profile
-            {
-                Id = x.Author.Id,
-                Email = x.Author.Email
-            },
-            Images = x.Images.Select(y => new PublicBookImage
-            {
-                Id = y.Id,
-                ImageUrl = y.ImageUrl
-            }).ToList(),
-            CreatedAt = x.CreatedAt
-        });
+        return bookReviews.Select(ParseBook);
     }
 
     public async Task<PublicBookReview?> GetBookReview(int id, CancellationToken cancellationToken)
@@ -230,6 +190,11 @@ public class BookReviewService : IBookReviewService
             return null;
         }
 
+        return ParseBook(bookReview);
+    }
+    
+    private PublicBookReview ParseBook(BookReview bookReview)
+    {
         return new PublicBookReview
         {
             Id = bookReview.Id,
