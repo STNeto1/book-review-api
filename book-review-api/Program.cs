@@ -1,7 +1,7 @@
 using System.Text;
 using book_review_api.Data;
-using book_review_api.Exceptions;
 using book_review_api.Graph;
+using book_review_api.Patch;
 using book_review_api.Service;
 using DataAnnotatedModelValidations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
-     var token = Encoding.UTF8.GetBytes(
+    var token = Encoding.UTF8.GetBytes(
         builder.Configuration.GetSection("AppSettings:Token").Value!);
 
     var signingKey = new SymmetricSecurityKey(
@@ -42,7 +42,9 @@ builder
     .AddMutationType<Mutation>()
     .AddQueryType<Query>()
     .AddDataAnnotationsValidator()
-    .AddMutationConventions();
+    .AddMutationConventions()
+    .AllowIntrospection(false)
+    .AddHttpRequestInterceptor<IntrospectionInspector>();
 
 var app = builder.Build();
 

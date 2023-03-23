@@ -8,7 +8,6 @@ using HotChocolate.Authorization;
 
 namespace book_review_api.Graph;
 
-[Authorize]
 public class Mutation
 {
     [Error(typeof(UserAlreadyExistsException))]

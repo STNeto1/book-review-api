@@ -7,7 +7,6 @@ using HotChocolate.Authorization;
 
 namespace book_review_api.Graph;
 
-[Authorize]
 public class Query
 {
     [Authorize]
@@ -18,7 +17,7 @@ public class Query
         var user = await _authService.Profile(claimsPrincipal, cancellationToken);
         return Type.Profile.FromEntity(user);
     }
-    
+
     [Authorize, UsePaging]
     public async Task<IEnumerable<PublicBookReview>> UserBookReviews([Service] IBookReviewService _bookReviewService,
         SearchBookReviewInput input,
