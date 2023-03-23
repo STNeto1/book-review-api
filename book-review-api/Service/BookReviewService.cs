@@ -21,9 +21,9 @@ public class BookReviewService : IBookReviewService
 
     private string GetImageRootFolder(int id)
     {
-        var basePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+        var basePath = Path.Combine("wwwroot", "images");
         var bookPath = Path.Combine(basePath, id.ToString());
-        
+
 
         // check if book folder exists
         if (!Directory.Exists(bookPath))
@@ -40,50 +40,79 @@ public class BookReviewService : IBookReviewService
     {
         var user = await _authService.Profile(claimsPrincipal, cancellationToken);
 
-        var bookReview = new BookReview
+        // open transaction
+        var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
         {
-            Title = input.Title,
-            Content = input.Content,
-            Rating = input.Rating,
-
-            BookTitle = input.BookTitle,
-            BookAuthor = input.BookAuthor,
-            BookYear = input.BookYear,
-
-            UserId = user.Id
-        };
-
-        await _context.BookReviews.AddAsync(bookReview, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var root = GetImageRootFolder(bookReview.Id);
-
-        foreach (var image in input.Images)
-        {
-            var fileExtension = Path.GetExtension(image.Name);
-
-            var filePath = Path.Combine(root, $"{Guid.NewGuid()}{fileExtension}");
-            await using var stream = File.Create(filePath);
-            await image.CopyToAsync(stream, cancellationToken);
-        }
-
-
-        return new PublicBookReview
-        {
-            Id = bookReview.Id,
-            Title = bookReview.Title,
-            Content = bookReview.Content,
-            Rating = bookReview.Rating,
-            BookTitle = bookReview.BookTitle,
-            BookAuthor = bookReview.BookAuthor,
-            BookYear = bookReview.BookYear,
-            Author = new Profile
+            var bookReview = new BookReview
             {
-                Id = user.Id,
-                Email = user.Email
-            },
-            CreatedAt = bookReview.CreatedAt
-        };
+                Title = input.Title,
+                Content = input.Content,
+                Rating = input.Rating,
+
+                BookTitle = input.BookTitle,
+                BookAuthor = input.BookAuthor,
+                BookYear = input.BookYear,
+
+                UserId = user.Id
+            };
+
+            await _context.BookReviews.AddAsync(bookReview, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var root = GetImageRootFolder(bookReview.Id);
+            var images = new List<PublicBookImage>();
+
+            foreach (var image in input.Images)
+            {
+                var fileExtension = Path.GetExtension(image.Name);
+                var fileName = $"{Guid.NewGuid()}{fileExtension}";
+
+                var filePath = Path.Combine(root, fileName);
+                await using var stream = File.Create(filePath);
+                await image.CopyToAsync(stream, cancellationToken);
+
+                var bookReviewImage = new BookReviewImage
+                {
+                    ImageUrl = $"{bookReview.Id}/{fileName}",
+                    BookReviewId = bookReview.Id
+                };
+                await _context.BookReviewImages.AddAsync(bookReviewImage, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                images.Add(new PublicBookImage
+                {
+                    Id = bookReviewImage.Id,
+                    ImageUrl = bookReviewImage.ImageUrl
+                });
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return new PublicBookReview
+            {
+                Id = bookReview.Id,
+                Title = bookReview.Title,
+                Content = bookReview.Content,
+                Rating = bookReview.Rating,
+                BookTitle = bookReview.BookTitle,
+                BookAuthor = bookReview.BookAuthor,
+                BookYear = bookReview.BookYear,
+                Author = new Profile
+                {
+                    Id = user.Id,
+                    Email = user.Email
+                },
+                Images = images,
+                CreatedAt = bookReview.CreatedAt
+            };
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 
     public async Task<IEnumerable<PublicBookReview>> GetBookReviews(
@@ -92,6 +121,7 @@ public class BookReviewService : IBookReviewService
     {
         var query = _context.BookReviews
             .Include(x => x.Author)
+            .Include(x => x.Images)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(input.Term))
@@ -129,6 +159,11 @@ public class BookReviewService : IBookReviewService
                 Id = x.Author.Id,
                 Email = x.Author.Email
             },
+            Images = x.Images.Select(y => new PublicBookImage
+            {
+                Id = y.Id,
+                ImageUrl = y.ImageUrl
+            }).ToList(),
             CreatedAt = x.CreatedAt
         });
     }
@@ -141,6 +176,7 @@ public class BookReviewService : IBookReviewService
 
         var query = _context.BookReviews
             .Include(x => x.Author)
+            .Include(x => x.Images)
             .Where(x => x.UserId == user.Id)
             .AsQueryable();
 
@@ -173,6 +209,11 @@ public class BookReviewService : IBookReviewService
                 Id = x.Author.Id,
                 Email = x.Author.Email
             },
+            Images = x.Images.Select(y => new PublicBookImage
+            {
+                Id = y.Id,
+                ImageUrl = y.ImageUrl
+            }).ToList(),
             CreatedAt = x.CreatedAt
         });
     }
@@ -181,6 +222,7 @@ public class BookReviewService : IBookReviewService
     {
         var bookReview = await _context.BookReviews
             .Include(x => x.Author)
+            .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         if (bookReview == null)
@@ -202,6 +244,11 @@ public class BookReviewService : IBookReviewService
                 Id = bookReview.Author.Id,
                 Email = bookReview.Author.Email
             },
+            Images = bookReview.Images.Select(y => new PublicBookImage
+            {
+                Id = y.Id,
+                ImageUrl = y.ImageUrl
+            }).ToList(),
             CreatedAt = bookReview.CreatedAt
         };
     }

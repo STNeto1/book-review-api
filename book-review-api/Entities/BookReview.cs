@@ -14,4 +14,5 @@ public class BookReview
     public DateTime CreatedAt { get; private set; }
     public int UserId { get; set; }
     public User Author { get; set; }
+    public List<BookReviewImage> Images { get; set; }
 }

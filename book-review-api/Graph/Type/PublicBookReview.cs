@@ -10,5 +10,12 @@ public class PublicBookReview
     public string BookAuthor { get; set; }
     public int BookYear { get; set; }
     public Profile Author { get; set; }
+    public List<PublicBookImage> Images { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+public class PublicBookImage
+{
+    public int Id { get; set; }
+    public string ImageUrl { get; set; }
 }
