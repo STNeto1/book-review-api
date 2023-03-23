@@ -6,4 +6,4 @@ riderModule.iml
 
 .idea
 .docker
-wwwroot/images/**/*
+book-review-api/wwwroot/images/**
